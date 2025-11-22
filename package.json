@@ -2,27 +2,32 @@
   "name": "moja-aplikacija",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && cp -r .next functions/.next",
+    "build1": "next build && rm -rf functions/.next && cp -r .next functions/.next",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "firebase": "^12.6.0",
+    "browser-image-compression": "^2.0.2",
+    "firebase": "12.6.0",
     "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "4.1.17",
+    "@types/node": "22.7.4",
+    "@types/react": "19.0.2",
+    "@types/react-dom": "19.0.2",
     "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
+    "eslint": "9.12.0",
     "eslint-config-next": "16.0.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwindcss": "4.1.17",
+    "typescript": "5.6.2"
   }
 }

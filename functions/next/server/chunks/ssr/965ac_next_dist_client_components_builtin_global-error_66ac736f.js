@@ -1,3 +1,0 @@
-module.exports=[50072,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(29238);a.n(d("[project]/botech/project/test-admin/moja-aplikacija/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},17451,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(29238);a.n(d("[project]/botech/project/test-admin/moja-aplikacija/node_modules/next/dist/client/components/builtin/global-error.js"))},32767,a=>{"use strict";a.i(50072);var b=a.i(17451);a.n(b)}];
-
-//# sourceMappingURL=965ac_next_dist_client_components_builtin_global-error_66ac736f.js.map

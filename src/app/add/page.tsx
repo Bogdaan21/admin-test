@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function AddPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Slug generator
   const generateSlug = (text: string) => {
     return text
       .toLowerCase()
@@ -25,14 +26,31 @@ export default function AddPage() {
     setSlug(generateSlug(value));
   };
 
+  const handleImageChange = (file: File) => {
+    setImageFile(file); // 🔥 BEZ KOMPRESIJE
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      let imageUrl = "";
+
+      if (imageFile) {
+        // 🔥 Upload u tvoj storage bucket
+        const storageRef = ref(storage, `items/${slug}-${Date.now()}.jpg`);
+        await uploadBytes(storageRef, imageFile);
+
+        // 🔥 Dobij URL iz Storage-a
+        imageUrl = await getDownloadURL(storageRef);
+      }
+
+      // 🔥 Snimanje u Firestore
       await addDoc(collection(db, "items"), {
         name,
         slug,
+        imageUrl,
         createdAt: serverTimestamp(),
       });
 
@@ -40,6 +58,8 @@ export default function AddPage() {
 
       setName("");
       setSlug("");
+      setImageFile(null);
+
     } catch (error) {
       console.error("Error adding document:", error);
       alert("Failed to add.");
@@ -53,8 +73,7 @@ export default function AddPage() {
       <h1 className="text-3xl font-semibold mb-6">Add New Item</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        
-        {/* Name input */}
+
         <div>
           <label className="block font-medium mb-1">Name</label>
           <input
@@ -67,7 +86,20 @@ export default function AddPage() {
           />
         </div>
 
-        {/* Submit */}
+        <div>
+          <label className="block font-medium mb-1">Image</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                handleImageChange(e.target.files[0]);
+              }
+            }}
+            className="w-full border px-4 py-2 rounded"
+          />
+        </div>
+
         <button
           type="submit"
           disabled={loading}
