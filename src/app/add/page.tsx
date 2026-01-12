@@ -4,12 +4,17 @@ import { useState } from "react";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import imageCompression from "browser-image-compression";
 
 export default function AddPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState(""); // ⭐ NOVO
+
   const [loading, setLoading] = useState(false);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
   const generateSlug = (text: string) => {
     return text
@@ -26,8 +31,44 @@ export default function AddPage() {
     setSlug(generateSlug(value));
   };
 
-  const handleImageChange = (file: File) => {
-    setImageFile(file); // 🔥 BEZ KOMPRESIJE
+  const optimizeImage = async (file: File) => {
+    const options = {
+      maxSizeMB: 0.4, // maksimalno ~400KB
+      maxWidthOrHeight: 1920, // max rezolucija
+      useWebWorker: true,
+      fileType: "image/jpeg", // konverzija u JPEG zbog najboljeg kompresovanja
+      initialQuality: 0.7, // startna kvalitet kompresije
+    };
+
+    let compressed = await imageCompression(file, options);
+
+    // ⚠️ DODATNA OPTIMIZACIJA AKO JE I DALJE PREKO 400KB
+    if (compressed.size > 400 * 1024) {
+      const secondPassOptions = {
+        ...options,
+        maxSizeMB: 0.35,
+        initialQuality: 0.6,
+      };
+      compressed = await imageCompression(compressed, secondPassOptions);
+    }
+
+    return compressed;
+  };
+
+  const handleImageChange = async (file: File) => {
+    const compressed = await optimizeImage(file);
+    setImageFile(compressed);
+  };
+
+  const handleGalleryChange = async (files: FileList) => {
+    const optimizedFiles: File[] = [];
+
+    for (const file of Array.from(files)) {
+      const optimized = await optimizeImage(file);
+      optimizedFiles.push(optimized);
+    }
+
+    setGalleryFiles(optimizedFiles);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,21 +77,30 @@ export default function AddPage() {
 
     try {
       let imageUrl = "";
+      let galleryUrls: string[] = [];
 
       if (imageFile) {
-        // 🔥 Upload u tvoj storage bucket
         const storageRef = ref(storage, `items/${slug}-${Date.now()}.jpg`);
         await uploadBytes(storageRef, imageFile);
-
-        // 🔥 Dobij URL iz Storage-a
         imageUrl = await getDownloadURL(storageRef);
       }
 
-      // 🔥 Snimanje u Firestore
+      if (galleryFiles.length > 0) {
+        const uploads = galleryFiles.map(async (file, index) => {
+          const storageRef = ref(storage, `items/gallery/${slug}-${index}-${Date.now()}.jpg`);
+          await uploadBytes(storageRef, file);
+          return await getDownloadURL(storageRef);
+        });
+
+        galleryUrls = await Promise.all(uploads);
+      }
+
       await addDoc(collection(db, "items"), {
         name,
         slug,
+        description, // ⭐ SNIMA SE U BAZU
         imageUrl,
+        gallery: galleryUrls,
         createdAt: serverTimestamp(),
       });
 
@@ -58,11 +108,12 @@ export default function AddPage() {
 
       setName("");
       setSlug("");
+      setDescription(""); // reset
       setImageFile(null);
-
+      setGalleryFiles([]);
     } catch (error) {
       console.error("Error adding document:", error);
-      alert("Failed to add.");
+      alert("Failed to add item.");
     }
 
     setLoading(false);
@@ -73,7 +124,7 @@ export default function AddPage() {
       <h1 className="text-3xl font-semibold mb-6">Add New Item</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-
+        {/* NAME */}
         <div>
           <label className="block font-medium mb-1">Name</label>
           <input
@@ -86,8 +137,9 @@ export default function AddPage() {
           />
         </div>
 
+        {/* GLAVNA SLIKA */}
         <div>
-          <label className="block font-medium mb-1">Image</label>
+          <label className="block font-medium mb-1">Main Image</label>
           <input
             type="file"
             accept="image/*"
@@ -98,6 +150,37 @@ export default function AddPage() {
             }}
             className="w-full border px-4 py-2 rounded"
           />
+        </div>
+
+        {/* GALERIJA */}
+        <div>
+          <label className="block font-medium mb-1">Gallery Images (multiple)</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              if (e.target.files) {
+                handleGalleryChange(e.target.files);
+              }
+            }}
+            className="w-full border px-4 py-2 rounded"
+          />
+
+          {galleryFiles.length > 0 && (
+            <p className="text-sm text-gray-600 mt-2">{galleryFiles.length} images ready for upload</p>
+          )}
+        </div>
+
+        {/* DESCRIPTION — ⭐ NOVO */}
+        <div>
+          <label className="block font-medium mb-1">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full border px-4 py-2 rounded h-32 resize-none"
+            placeholder="Enter description…"
+          ></textarea>
         </div>
 
         <button

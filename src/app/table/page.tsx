@@ -47,33 +47,23 @@ export default function TablePage() {
         <thead className="bg-gray-100">
           <tr>
             <th className="border px-4 py-2 text-left">Name</th>
-            <th className="border px-4 py-2 text-left">Slug</th>
             <th className="border px-4 py-2 text-left">Created</th>
           </tr>
         </thead>
 
         <tbody>
           {items.map((item) => (
-            <tr
-              key={item.id}
-              onClick={() => openDetails(item.slug)}
-              className="cursor-pointer hover:bg-gray-50"
-            >
-              <td className="border px-4 py-2">{item.name}</td>
-              <td className="border px-4 py-2">{item.slug}</td>
+            <tr key={item.id} onClick={() => openDetails(item.slug)} className="cursor-pointer hover:bg-gray-50">
               <td className="border px-4 py-2">
-                {item.createdAt?.toDate
-                  ? item.createdAt.toDate().toLocaleString()
-                  : "—"}
+                {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : "—"}
               </td>
+              <td className="border px-4 py-2">{item.name}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {items.length === 0 && (
-        <p className="text-center text-gray-500 mt-6">No items found.</p>
-      )}
+      {items.length === 0 && <p className="text-center text-gray-500 mt-6">No items found.</p>}
     </div>
   );
 }
